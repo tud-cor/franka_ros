@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   xmlrpcpp
   actionlib_msgs
+  std_msgs
 )
 
 find_package(Franka 0.7.0 REQUIRED)
@@ -21,6 +22,11 @@ add_action_files(
   FILES Vacuum.action
         Stop.action
 	DropOff.action
+)
+
+add_message_files(
+  DIRECTORY msg
+  FILES VacuumState.msg
 )
 
 generate_messages(DEPENDENCIES actionlib_msgs)
@@ -35,6 +41,7 @@ catkin_package(
                  sensor_msgs
                  xmlrpcpp
                  actionlib_msgs
+		 std_msgs
   DEPENDS Franka
 )
 

@@ -18,6 +18,8 @@
 #include <franka_vacuum_gripper/VacuumAction.h>
 #include <franka_vacuum_gripper/DropOffAction.h>
 
+#include <franka_vacuum_gripper/VacuumState.h>
+
 namespace {
 
 template <typename T_action, typename T_goal, typename T_result>
@@ -112,10 +114,10 @@ int main(int argc, char** argv) {
   franka::VacuumGripperState gripper_state;
   std::mutex gripper_state_mutex;
   std::thread read_thread([&gripper_state, &gripper, &gripper_state_mutex]() {
-    ros::Rate read_rate(10);
+    ros::Rate read_rate(5);
     while (ros::ok()) {
       {
-        std::lock_guard<std::mutex> _(gripper_state_mutex);
+        std::lock_guard<std::mutex> read_lock (gripper_state_mutex);
         updateGripperState(gripper, &gripper_state);
       }
       read_rate.sleep();
@@ -124,16 +126,50 @@ int main(int argc, char** argv) {
 
   ros::AsyncSpinner spinner(2);
   spinner.start();
-  ros::Rate rate(publish_rate);
-  while (ros::ok()) {
-    if (gripper_state_mutex.try_lock()) {
-      gripper_state_mutex.unlock();  
-    }
+  std::thread publish_thread([&gripper_state, &gripper_state_mutex, &node_handle]() {
+    ros::Publisher vacuum_state_publisher =
+            node_handle.advertise<franka_vacuum_gripper::VacuumState>("vacuum_state", 1);
+    ros::Rate rate(10);
+    while (ros::ok()) {
+      {
+        std::lock_guard<std::mutex> pub_lock (gripper_state_mutex);
+        franka_vacuum_gripper::VacuumState vacuum_state;
+        vacuum_state.header.stamp = ros::Time::now();
+        vacuum_state.in_control_range = gripper_state.in_control_range;
+        vacuum_state.part_detached = gripper_state.part_detached;
+        vacuum_state.part_present = gripper_state.part_present;
+
+        std::string device_status;
+        switch (gripper_state.device_status) {
+     	  case franka::VacuumGripperDeviceStatus::kGreen:
+            device_status = "Green";
+            break;
+	  case franka::VacuumGripperDeviceStatus::kYellow:
+            device_status = "Yellow";
+            break;
+	  case franka::VacuumGripperDeviceStatus::kOrange:
+            device_status = "Orange";
+            break;
+	  case franka::VacuumGripperDeviceStatus::kRed:
+            device_status = "Red";
+            break;
+        }
+
+        vacuum_state.device_status = device_status;
+        vacuum_state.actual_power = gripper_state.actual_power;
+        vacuum_state.vacuum = gripper_state.vacuum;
+        vacuum_state_publisher.publish(vacuum_state);
+      }
     rate.sleep();
-  }
+    }
+  });
+
   read_thread.join();
+  publish_thread.join();
+  
   if (stop_at_shutdown) {
     gripper.stop();
   }
+
   return 0;
 }
