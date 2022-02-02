@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ee">
+  <!-- <xacro:include filename="gripper.xacro" /> -->
+  <!-- <xacro:gripper ns="panda" safety_distance="0.03" /> -->
+
+  <xacro:include filename="vacuum.xacro" />
+  <xacro:vacuum ns="panda" safety_distance="0.03" />
+</robot>
