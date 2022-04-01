@@ -11,9 +11,21 @@ ControllerVerifier::ControllerVerifier(
   }
 }
 
+// This function is called by prepareSwitch()
 bool ControllerVerifier::isValidController(
     const hardware_interface::ControllerInfo& controller) const {
-  if (isClaimingGripperController(controller) or isClaimingArmController(controller)) {
+  /**
+  Add isClaimingBoxerController to check if the boxer controller
+  uses the joints of the wheels with velocity interface.
+  As isClaimingGripperController and isClaimingArmController are not designed for boxer joints
+  and therefore those will not return true when a boxer_velocity_controlle is passed.
+
+  If a false is returned, the following error will occur
+  "Could not switch controllers. The hardware interface combination for the requested controllers is unfeasible."
+  This error comes from controller_manager/controller_manager.cpp
+  @see https://github.com/ros-controls/ros_control/blob/noetic-devel/controller_manager/src/controller_manager.cpp#L592
+  */
+  if (isClaimingGripperController(controller) or isClaimingArmController(controller) or isClaimingBoxerController(controller)) {
     return true;
   }
   return std::none_of(
@@ -45,6 +57,21 @@ bool ControllerVerifier::isClaimingGripperController(
       continue;
     }
     if (control_method.value() == EFFORT) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool ControllerVerifier::isClaimingBoxerController(
+    const hardware_interface::ControllerInfo& info) const {
+  for (const auto& claimed_resource : info.claimed_resources) {
+    auto control_method =
+        ControllerVerifier::determineControlMethod(claimed_resource.hardware_interface);
+    if (not control_method) {
+      continue;
+    }
+    if (control_method.value() == VELOCITY) {
       return true;
     }
   }

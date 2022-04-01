@@ -33,6 +33,9 @@ class ControllerVerifier {
   /// velocity or effort interface.
   bool isClaimingArmController(const hardware_interface::ControllerInfo& info) const;
 
+  /// checks if a controller that uses the joints of the wheel claims a velocity interface.
+  bool isClaimingBoxerController(const hardware_interface::ControllerInfo& info) const;
+
   /// returns the control method of a hardware interface
   static boost::optional<ControlMethod> determineControlMethod(
       const std::string& hardware_interface);

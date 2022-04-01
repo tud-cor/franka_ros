@@ -178,10 +178,11 @@ bool FrankaHWSim::initSim(const std::string& robot_namespace,
     }
   }
 
+  // there are more than 7 joints using velocity/position control for albert
   // After all handles have been assigned to interfaces, register them
   assert(this->eji_.getNames().size() >= 7);
-  assert(this->pji_.getNames().size() == 7);
-  assert(this->vji_.getNames().size() == 7);
+  assert(this->pji_.getNames().size() >= 7);
+  assert(this->vji_.getNames().size() >= 7);
   assert(this->jsi_.getNames().size() >= 7);
   assert(this->fsi_.getNames().size() == 1);
   assert(this->fmi_.getNames().size() == 1);
@@ -366,7 +367,22 @@ void FrankaHWSim::writeSim(ros::Time /*time*/, ros::Duration period) {
 
   for (auto& pair : this->joints_) {
     auto joint = pair.second;
+    /*
+     * Skip all the joints of boxer as the following mechanism is not meant for it.
+     * otherwise the error: "Only revolute joints are allowed for position control right now"
+     * will occur as none of those joints is a revolute joint
+     */
+    // there will be no command sent to lift_joint, as we don't use this joint
+    if (joint->name == "lift_joint")
+    {
+      continue;
+    }
+    // send velocity commands directly to wheel joints (for now)
+    if (joint->name == "wheel_left_joint" || joint->name == "wheel_right_joint") {
 
+      joint->handle->SetVelocity(0, joint->desired_velocity);
+      continue;
+    }
     // Retrieve effort control command
     double effort = 0;
     // Check if this joint is affected by gravity compensation
