@@ -252,6 +252,13 @@
       <axis xyz="0 0 1"/>
       <limit effort="12" lower="-0.0175" upper="3.7525" velocity="2.6100"/>
     </joint>
+    <link name="${arm_id}_link5_offset">
+    </link>
+    <joint name="${arm_id}_joint5_offset" type="fixed">
+      <origin rpy="0 0 0" xyz="0 0 -0.20"/>
+      <parent link="${arm_id}_link5"/>
+      <child link="${arm_id}_link5_offset"/>
+    </joint>
     <link name="${arm_id}_link7">
       <visual>
         <geometry>
