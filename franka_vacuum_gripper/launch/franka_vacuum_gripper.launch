@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
   <arg name="robot_ip" />
-  <arg name="stop_at_shutdown" default="false" />
+  <arg name="stop_at_shutdown" default="true" />
   <arg name="arm_id"      default="panda" />
 
   <node name="franka_vacuum_gripper" pkg="franka_vacuum_gripper" type="franka_vacuum_gripper_node" output="screen">
