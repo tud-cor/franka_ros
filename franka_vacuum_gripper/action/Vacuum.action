@@ -1,5 +1,6 @@
 int8 vacuum # [10 mbar]
 int8 timeout # [ms]
+bool one_head # [nr heads]
 ---
 bool success
 string error
