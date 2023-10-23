@@ -35,6 +35,7 @@ add_message_files(FILES
 generate_messages()
 
 generate_dynamic_reconfigure_options(
+  cfg/pid_params.cfg
   cfg/compliance_param.cfg
   cfg/desired_mass_param.cfg
   cfg/dual_arm_compliance_param.cfg
@@ -74,6 +75,8 @@ add_library(franka_example_controllers
   src/force_example_controller.cpp
   src/dual_arm_cartesian_impedance_example_controller.cpp
   src/teleop_joint_pd_example_controller.cpp
+  src/compliant_joint_velocity_controller.cpp
+  src/compliant_joint_position_controller.cpp
 )
 
 add_dependencies(franka_example_controllers
