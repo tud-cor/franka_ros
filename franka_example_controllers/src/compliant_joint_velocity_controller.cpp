@@ -125,9 +125,11 @@ bool CompliantJointVelocityController::init(hardware_interface::RobotHW* robot_h
 	velocity_subscriber_ = node_handle.subscribe("/panda_joint_velocity_controller/command", 1, &CompliantJointVelocityController::joint_velocity_callback, this);
 	kp_subscriber_ = node_handle.subscribe("controller_kp", 1, &CompliantJointVelocityController::kp_callback, this);
 	ki_subscriber_ = node_handle.subscribe("controller_ki", 1, &CompliantJointVelocityController::ki_callback, this);
+	load_subscriber_ = node_handle.subscribe("controller_load", 1, &CompliantJointVelocityController::load_callback, this);
 
 
   std::fill(dq_filtered_.begin(), dq_filtered_.end(), 0);
+  load_ << 0, 0, 0, 0, 0, 0;
 
   return true;
 }
@@ -137,6 +139,12 @@ void CompliantJointVelocityController::joint_velocity_callback(const std_msgs::F
 		dq_d_[i] = msg.data[i];
 	}
 }
+
+void CompliantJointVelocityController::load_callback(const std_msgs::Float64& msg) {
+	load_[2] = msg.data;
+}
+
+	
 
 void CompliantJointVelocityController::kp_callback(const std_msgs::Float64MultiArray& msg) {
 	ROS_INFO_STREAM("Setting kp values");
@@ -166,6 +174,11 @@ void CompliantJointVelocityController::update(const ros::Time& /*time*/,
   franka::RobotState robot_state = state_handle_->getRobotState();
   std::array<double, 7> coriolis = model_handle_->getCoriolis();
   std::array<double, 7> gravity = model_handle_->getGravity();
+  // get jacobian
+  std::array<double, 42> jacobian_array =
+      model_handle_->getZeroJacobian(franka::Frame::kEndEffector);
+
+  Eigen::Map<Eigen::Matrix<double, 6, 7>> jacobian(jacobian_array.data());
 
   for (size_t i = 0; i < 7; i++) {
     dq_filtered_[i] = (1 - alpha_) * dq_filtered_[i] + alpha_ * robot_state.dq[i];
@@ -183,6 +196,10 @@ void CompliantJointVelocityController::update(const ros::Time& /*time*/,
                           k_gains_[i] * (robot_state.q_d[i] - robot_state.q[i]) +
                           d_gains_[i] * (robot_state.dq_d[i] - dq_filtered_[i]);
 		*/
+  }
+  tau_load_ << jacobian.transpose() * load_;
+  for (size_t i = 0; i < 7; ++i) {
+    tau_d_calculated[i] += tau_load_[i];
   }
 
   // Maximum torque difference with a sampling rate of 1 kHz. The maximum torque rate is

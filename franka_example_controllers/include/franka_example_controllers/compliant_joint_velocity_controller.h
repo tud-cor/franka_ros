@@ -13,7 +13,9 @@
 #include <ros/node_handle.h>
 #include <ros/time.h>
 #include "std_msgs/Float64MultiArray.h"
+#include "std_msgs/Float64.h"
 #include <ros/ros.h>
+#include <Eigen/Dense>
 
 #include <franka_example_controllers/JointTorqueComparison.h>
 #include <franka_hw/franka_cartesian_command_interface.h>
@@ -33,6 +35,7 @@ class CompliantJointVelocityController : public controller_interface::MultiInter
   void joint_velocity_callback(const std_msgs::Float64MultiArray& msg);
   void kp_callback(const std_msgs::Float64MultiArray& msg);
   void ki_callback(const std_msgs::Float64MultiArray& msg);
+  void load_callback(const std_msgs::Float64& msg);
 
  private:
   // Saturation
@@ -59,10 +62,13 @@ class CompliantJointVelocityController : public controller_interface::MultiInter
 
   franka_hw::TriggerRate rate_trigger_{1.0};
   std::array<double, 7> last_tau_d_{};
+  Eigen::Matrix<double, 7, 1> tau_load_;
+  Eigen::Matrix<double, 6, 1> load_;
   realtime_tools::RealtimePublisher<JointTorqueComparison> torques_publisher_;
   ros::Subscriber velocity_subscriber_;
   ros::Subscriber kp_subscriber_;
   ros::Subscriber ki_subscriber_;
+  ros::Subscriber load_subscriber_;
 };
 
 }  // namespace franka_example_controllers
